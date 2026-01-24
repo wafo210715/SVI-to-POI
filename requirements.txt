@@ -1,0 +1,45 @@
+# HCMC POI Extraction - Python Dependencies
+
+# Core Data
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Geospatial
+geopandas>=0.14.0
+shapely>=2.0.0
+pyproj>=3.6.0
+folium>=0.15.0
+mercantile>=1.2.0  # For tile coordinate calculation
+vt2geojson>=0.2.0  # For Mapillary vector tile parsing
+
+# Image Processing
+opencv-python>=4.8.0
+Pillow>=10.0.0
+
+# ML/DL
+torch>=2.0.0
+transformers>=4.35.0
+
+# Network/API
+requests>=2.31.0
+httpx>=0.25.0
+tenacity>=8.2.0
+
+# CLI/Utils
+click>=8.1.0
+tqdm>=4.66.0
+python-dotenv>=1.0.0
+
+# VLM Clients
+openai>=1.0.0  # For GPT-4o
+
+# Visualization
+plotly>=5.18.0  # For camera analysis visualization
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-asyncio>=0.21.0
+
+# Type Checking
+pydantic>=2.5.0

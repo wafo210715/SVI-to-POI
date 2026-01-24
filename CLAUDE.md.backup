@@ -1,0 +1,155 @@
+Project: HCMC Spatial-Semantic POI Reconstruction (2026)
+0. Role & Behavior Protocol
+You are the Lead Engineer for this project.
+
+Do not ask for permission on library choices if they are listed in Section 1.
+
+Do not ask about folder structure; create the structure defined in Section 2 if it doesn't exist.
+
+Do not hallucinate APIs; use the specific APIs defined for VLM.
+
+Language: The target city is Ho Chi Minh City (Vietnamese), but all code comments, documentation, and output JSON keys/values must be in English.
+
+1. Technology Stack (Strict)
+Language: Python 3.10+
+
+Environment Management: conda or venv (User preference: local).
+
+Key Libraries (Use these defaults):
+
+Data Manipulation: pandas, numpy
+
+Geospatial: geopandas, shapely, pyproj, folium (for viz)
+
+Image Processing: opencv-python (cv2), Pillow
+
+ML/DL: torch (for depth/localization models), transformers
+
+Network/API: requests, httpx, tenacity (for retries)
+
+CLI/Utils: click or typer, tqdm, python-dotenv
+
+VLM Provider:
+
+Primary: GLM-4V (via API).
+
+Secondary: GPT-4o (via OpenAI API).
+
+Configuration: Load API keys from .env.
+
+2. Project Directory Structure
+Enforce this structure. If a script needs to save a file, save it to the appropriate data/ subdirectory.
+
+Plaintext
+
+.
+├── .env                    # API Keys (GLM_KEY, GOOGLE_KEY, etc.)
+├── claude.md               # Context file
+├── requirements.txt
+├── src/
+│   ├── __init__.py
+│   ├── crawler.py          # Mapillary/GSV API interaction
+│   ├── geolocator.py       # Depth + Camera Params -> Lat/Lon
+│   ├── vlm_extractor.py    # GLM-4V API wrapper & Prompting
+│   └── utils.py            # Geometric math & helpers
+├── scripts/
+│   ├── 01_download_samples.py
+│   ├── 02_test_depth_projection.py
+│   └── 03_run_pipeline.py
+└── data/
+    ├── raw/                # Original images & JSON metadata
+    ├── interim/            # Cropped signboards, depth maps
+    └── processed/          # Final GeoJSON POI files
+3. Core Pipeline Specifications
+Module A: Data Acquisition (The Input)
+Source: Google Street View (GSV) or Mapillary.
+
+Required Metadata per Image:
+
+image_id: Unique ID.
+
+camera_loc: {lat, lon}.
+
+heading: Camera bearing (0-360).
+
+pitch: Camera vertical angle.
+
+fov: Field of view.
+
+depth_map: Base64 encoded or separate file (Metric depth preferred).
+
+Module B: Geo-localization (The Calculation)
+Goal: Convert (pixel_u, pixel_v) of a signboard center to (poi_lat, poi_lon). Logic:
+
+Input: Image W, H, Pixel (u, v), Depth d (meters), Camera (lat, lon, heading, pitch).
+
+Algorithm (Geometric Projection):
+
+Convert pixel (u,v) to spherical coordinates relative to camera center.
+
+Adjust for heading and pitch.
+
+Calculate offset vectors (delta_north, delta_east).
+
+Apply offset to Camera GPS using geopy.distance or Haversine formula.
+
+Supervised Learning Component (If geometric fails):
+
+If implementing the supervised model, input is [image_crop, depth_crop], output is [relative_distance, relative_angle].
+
+Module C: Semantic Extraction (The VLM)
+Constraint: Zero-shot extraction. Prompting Strategy:
+
+Input: Cropped Signboard Image + Context Image (Whole storefront).
+
+System Prompt: "You are an urban surveyor in Ho Chi Minh City. Extract structured data from the signboard. Correct Vietnamese OCR errors based on context. Translate semantics to English."
+
+Output Format: Strict JSON (see Section 4).
+
+4. Data Contracts (JSON Schema)
+The VLM must return this exact structure. Do not deviate.
+
+JSON
+
+{
+  "target_schema": {
+    "poi_name_vietnamese": "Phở Hùng",
+    "poi_name_english": "Hung Pho",
+    "business_category": "Restaurant",
+    "sub_category": "Noodle Shop",
+    "address_text": "24 Nguyen Du",
+    "is_temporary_stall": false,
+    "storefront_attributes": {
+        "signage_condition": "Good",
+        "has_english_menu": true,
+        "is_chain_brand": false
+    },
+    "accessibility": {
+        "has_steps_at_entrance": true,
+        "sidewalk_condition": "Crowded with motorbikes"
+    }
+  }
+}
+5. Implementation Rules
+Error Handling:
+
+VLM API calls must use tenacity for exponential backoff retries.
+
+If an image has no depth metadata, log warning and skip (or fallback to monocular depth estimation).
+
+Coordinate Precision:
+
+Keep Latitude/Longitude to 6 decimal places.
+
+Visualization:
+
+Any debugging visualization should save to data/debug/ as .png (images) or .html (folium maps).
+
+6. Immediate Action Items (Execution Plan)
+When asked to "start" or "setup":
+
+Check environment: Verify if .env exists (warn if not).
+
+Skeleton: Create the directory structure defined in Section 2.
+
+Prototype: Create src/geolocator.py first, as this is the most mathematical/logic-heavy part that doesn't require API keys to write.
