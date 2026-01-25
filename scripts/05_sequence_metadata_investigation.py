@@ -110,13 +110,35 @@ def fetch_sequence_entities(
 ) -> List[Dict[str, Any]]:
     """Fetch entity metadata for one image per sequence.
 
+    NOTE ON CAMERA METADATA AVAILABILITY:
+    --------------------------------------
+    This function attempts to fetch camera metadata (camera_type, make, model)
+    by sampling one image from each sequence. However, the sample image IDs
+    from tile data may be invalid/deleted, causing the API to return errors.
+
+    IMPACT:
+    - If camera metadata fetch fails, the sequence is still included in results
+      but without camera fields (they will be None/empty)
+    - Empty camera distributions in final output indicate API fetch failures
+    - Sequence grouping and image count statistics remain valid
+
+    WHY THIS HAPPENS:
+    - Tile data contains image IDs that may be deleted/invalid
+    - Mapillary's individual image endpoint returns 404 for invalid IDs
+    - The tenacity retry mechanism exhausts retries before continuing
+
+    ALTERNATIVE APPROACH:
+    - The depth investigation script (04_investigate_depth.py) uses random
+      sampling which yields higher success rates for valid image IDs
+    - For camera metadata, refer to depth_investigation_summary.json results
+
     Args:
         client: MapillaryClient instance
         summaries: List of sequence summaries
         max_sequences: Maximum number of sequences to analyze
 
     Returns:
-        List of enriched sequence summaries with camera info
+        List of enriched sequence summaries with camera info (if available)
     """
     # Limit to top sequences by image count
     top_summaries = summaries[:max_sequences]
@@ -142,6 +164,7 @@ def fetch_sequence_entities(
         except Exception as e:
             print(f"Warning: Failed to fetch entity for sequence {seq['sequence_id']}: {e}")
             # Still add the summary without camera info
+            # The sequence data (image_count, creator_id, etc.) remains valid
             enriched.append(seq)
 
     return enriched
@@ -402,12 +425,22 @@ def main():
     print(f"  - Max: {stats['max']}")
     print(f"  - Median: {stats['median']}")
     print(f"  - Mean: {stats['mean']:.1f}")
+
+    # Camera metadata may be empty if API fetches failed
     print(f"\nCamera Types:")
-    for k, v in analysis['camera_type_distribution'].items():
-        print(f"  - {k}: {v}")
+    if analysis['camera_type_distribution']:
+        for k, v in analysis['camera_type_distribution'].items():
+            print(f"  - {k}: {v}")
+    else:
+        print("  (No camera type data available - see notes in fetch_sequence_entities())")
+
     print(f"\nCamera Makes (top 5):")
-    for make, count in list(analysis['camera_make_distribution'].items())[:5]:
-        print(f"  - {make}: {count}")
+    if analysis['camera_make_distribution']:
+        for make, count in list(analysis['camera_make_distribution'].items())[:5]:
+            print(f"  - {make}: {count}")
+    else:
+        print("  (No camera make data available - see notes in fetch_sequence_entities())")
+        print("  For camera metadata, refer to: data/debug/depth_investigation_summary.json")
 
     # Save results
     print("\nSaving results...")

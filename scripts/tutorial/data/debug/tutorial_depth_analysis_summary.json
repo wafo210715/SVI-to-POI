@@ -1,0 +1,10 @@
+{
+  "total_images_tested": 100,
+  "camera_params": {
+    "perspective": 92,
+    "fisheye": 0,
+    "spherical": 7,
+    "has_valid_intrinsics": 92
+  },
+  "feasibility_recommendation": "MONOCULAR DEPTH FEASIBLE"
+}
