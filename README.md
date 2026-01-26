@@ -178,6 +178,100 @@ uv run python scripts/05_sequence_metadata_investigation.py
 | **Text Extraction** | GLM-4V | Vietnamese OCR, POI data extraction |
 | **Visualization** | Folium, Matplotlib | Interactive maps, depth colormaps |
 
+## VLM Prompting Strategy
+
+The pipeline uses GLM-4V (a Vision Language Model) to detect signboards and extract structured POI data in a single API call. This approach is more efficient than separate detection and extraction steps.
+
+### The Prompt
+
+The VLM prompt is designed to elicit structured JSON output containing both detection (bounding boxes) and extraction (POI data) information:
+
+```
+Analyze this street view image and identify all storefront/business signs.
+
+For each signboard you find:
+1. Extract the bounding box as [x1, y1, x2, y2] (pixel coordinates)
+2. Extract the center pixel as [u, v]
+3. Extract structured POI data:
+   - poi_name_vietnamese: Vietnamese name on sign
+   - poi_name_english: English translation
+   - business_category: Restaurant, Retail, Service, etc.
+   - sub_category: More specific type
+   - address_text: Address if visible
+
+Return your answer as a JSON array of objects, each with:
+{
+  "bbox": [x1, y1, x2, y2],
+  "center_pixel": [u, v],
+  "poi_data": { ... },
+  "confidence": 0.0-1.0
+}
+
+If no signboards are found, return an empty array [].
+
+IMPORTANT: Return ONLY valid JSON, no other text.
+```
+
+### Prompt Design Rationale
+
+**Single-Pass Detection + Extraction**: The prompt combines two tasks:
+1. **Detection**: Locate signboards with bounding boxes and center pixels
+2. **Extraction**: Pull structured POI data from each detected signboard
+
+This reduces API calls from 2 to 1 per image, cutting latency and cost in half.
+
+**Structured Output Format**: The prompt explicitly specifies the JSON schema:
+- `bbox`: Pixel coordinates for cropping the signboard region
+- `center_pixel`: Used for depth sampling and GPS projection
+- `poi_data`: Structured POI information (name, category, address)
+- `confidence`: Detection reliability score (0.0-1.0)
+
+**JSON-Only Enforcement**: The instruction "Return ONLY valid JSON, no other text" prevents the model from adding explanatory text that would break JSON parsing. The implementation also handles common markdown wrapping (```json ... ```) by stripping it before parsing.
+
+**Vietnamese + English Bilingual**: The prompt asks for both Vietnamese and English names because:
+- Vietnamese names match what's physically on the signboard
+- English translations enable international usability
+- GLM-4V is capable of cross-lingual understanding
+
+**Category Guidance**: Providing example categories (Restaurant, Retail, Service) guides the model toward consistent classification without overly constraining it.
+
+### Response Parsing
+
+The implementation includes robust response parsing:
+
+```python
+response = response.strip()
+if response.startswith("```"):
+    response = response.split("```")[1]
+    if response.startswith("json"):
+        response = response[4:]
+
+data = json.loads(response)
+```
+
+This handles:
+- Markdown code blocks (```json ... ```)
+- Leading/trailing whitespace
+- Plain JSON responses
+
+### API Configuration
+
+- **Provider**: GLM-4V (primary), GPT-4o (fallback)
+- **Timeout**: 90 seconds base, with exponential backoff (90s → 180s → 360s)
+- **Retries**: 3 attempts with exponential backoff
+- **Image Size**: Resized to 1024px max dimension for bandwidth efficiency
+
+### Validation Experiment (Block 12)
+
+Before full pipeline execution, Block 12 runs a validation experiment on 100 diverse street view images to verify:
+- Vietnamese OCR accuracy (manual spot-check)
+- Signboard detection recall
+- False positive rate
+- API response time and reliability
+- Cost per image
+
+This ensures the VLM approach is viable before committing to expensive batch processing.
+
 ## Data Contracts
 
 ### POI JSON Schema
