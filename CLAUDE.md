@@ -287,14 +287,32 @@ Enforce this structure. If a script needs to save a file, save it to the appropr
 
 ## Implementation Status
 
-### Core Modules
+### Tutorial Pipeline (Blocks 0-19)
+
+The complete POI reconstruction pipeline is implemented as a tutorial in `scripts/tutorial/00_pipeline_tutorial.py`.
+
+| Block | Description | Status |
+|-------|-------------|--------|
+| Blocks 0-10 | Data acquisition, camera analysis, depth feasibility | ✅ Complete |
+| Block 11 | Download SVI images locally | ✅ Implemented |
+| Block 12 | VLM validation experiment | ✅ Implemented (GLM-4V) |
+| Block 12.5 | SVI safety check (pre-filtering) | ✅ Implemented |
+| Block 13 | Camera parameter analysis | ✅ Implemented |
+| Block 14 | ML monocular depth estimation (DPT) | ✅ Implemented |
+| Block 15 | Depth map visualization | ✅ Implemented |
+| Block 16 | Geolocator implementation | ✅ Implemented |
+| Block 17 | VLM signboard detection + POI extraction | ✅ Implemented |
+| Block 18 | Assign POI to GPS location | ✅ Implemented |
+| Block 19 | End-to-end pipeline orchestration | ✅ Implemented |
+
+### Core Modules (Production Status)
 
 | Module | File | Status | Notes |
 |--------|------|--------|-------|
 | Data Acquisition | `src/crawler.py` | ✅ Implemented | GSV and Mapillary clients fully functional |
-| Geo-localization | `src/geolocator.py` | ❌ Not Implemented | Planned: Pixel-to-GPS geometric projection |
-| VLM Extraction | `src/vlm_extractor.py` | ❌ Not Implemented | Planned: GLM-4V API wrapper |
-| Utilities | `src/utils.py` | ❌ Not Implemented | Planned: Geometric math helpers |
+| Geo-localization | `src/geolocator.py` | ⚠️ Tutorial only | Prototype in tutorial, needs modularization |
+| VLM Extraction | `src/vlm_extractor.py` | ⚠️ Tutorial only | VLM client in tutorial, needs extraction |
+| Utilities | `src/utils.py` | ⚠️ Tutorial only | Helper functions in tutorial, needs extraction |
 
 ### Scripts
 
@@ -308,6 +326,7 @@ Enforce this structure. If a script needs to save a file, save it to the appropr
 | `04_investigate_depth.py` | Depth investigation | ✅ Working |
 | `05_sequence_metadata_investigation.py` | Sequence analysis | ✅ Working |
 | `06_colmap_quality_assessment.py` | Quality assessment | ✅ Working |
+| `00_pipeline_tutorial.py` | **Complete tutorial (Blocks 0-19)** | ✅ **New** - Full pipeline |
 
 ### Tests
 
@@ -318,9 +337,11 @@ Enforce this structure. If a script needs to save a file, save it to the appropr
 
 ### Next Priorities
 
-1. **High Priority:** Implement `src/geolocator.py` (geometric projection doesn't require API keys)
-2. **Medium Priority:** Implement `src/vlm_extractor.py` (requires GLM-4V API access)
-3. **Low Priority:** Implement `src/utils.py` (can be done alongside geolocator)
+1. **Modularization:** Extract tutorial code into production modules:
+   - Extract `VLMClient`, `Geolocator`, and utilities from `00_pipeline_tutorial.py`
+   - Create `src/vlm_extractor.py`, `src/geolocator.py`, `src/utils.py`
+2. **Documentation:** Update README.md with project overview and usage
+3. **Testing:** Add tests for geolocator and VLM extraction modules
 
 ---
 
