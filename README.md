@@ -240,7 +240,7 @@ Each block can be run independently:
 ### Simplified Approach
 
 **Rejected Approaches:**
-- ❌ Mapillary SfM: "杀鸡用宰牛刀" (overkill for single POI)
+- ❌ Mapillary SfM: (overkill for single POI)
 - ❌ Sequential Stereo: Too complex, requires image pairing
 - ✅ **Chosen**: ML depth + geometric projection (works with single image)
 
