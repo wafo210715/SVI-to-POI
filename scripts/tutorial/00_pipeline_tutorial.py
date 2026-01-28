@@ -13,7 +13,7 @@ SHIFT OF MIND (Key Learning):
 ==============================
 Original Plan: Compare three depth approaches - Mapillary SfM, Sequential Stereo, ML
 Reality After Analysis:
-- SfM cluster is "杀鸡用宰牛刀" (overkill for single POI)
+- SfM cluster is (overkill for single POI)
 - Sequential stereo requires image pairing + feature matching - too complex
 - Simplified approach wins: Detect POI -> Sample depth -> Project to GPS
 - 95% perspective cameras with 69.5% Normal FOV -> geometric projection is reliable
